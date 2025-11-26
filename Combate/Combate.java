@@ -25,69 +25,111 @@ public class Combate {
             mochila[1] = new Superpociones();
             mochila[2] = new Ultrapociones();
         }
-        equipo[0].subirNivel();
         combatePokemon(equipo,equipoEnemigo,mochila);
     }
 
-    public static void elegirPokemon(Pokemon[] equipo) {
+
+    public static boolean cambiarPokemon(Pokemon[] equipo, int turnoActual) {
         Scanner sc = new Scanner(System.in);
-        boolean elegido = false;
+        System.out.println("Elige Pokémon para cambiar (C para cancelar):");
 
-        while (!elegido) {
-            System.out.println("Elige tu Pokémon:");
-            for (int i = 0; i < equipo.length; i++) {
-                System.out.println((i+1) + ". " + equipo[i].nombre + " | " + equipo[i].tipo + " | Vida: " + barraVida(equipo[i].vida, equipo[i].vidamax));
+        for (int i = 0; i < equipo.length; i++) {
+            if (equipo[i].vida > 0 && i != turnoActual) {
+                System.out.println((i + 1) + ") " + equipo[i].nombre + " | " + barraVida(equipo[i].vida, equipo[i].vidamax));
             }
+        }
 
-            int opcion = sc.nextInt() - 1;
-            if (opcion < 0 || opcion >= equipo.length) continue;
-            if (equipo[opcion].vida <= 0) {
-                System.out.println("No puedes elegir a este Pokémon");
-            } else {
-                System.out.println(equipo[opcion].nombre + " te eligió a ti!");
-                elegido = true;
-            }
+        String input = sc.nextLine().trim();
+        if (input.equalsIgnoreCase("C")) {
+            System.out.println("Cancelado.");
+            return false; // No se gasta el turno
+        }
+
+        int nuevo;
+        try {
+            nuevo = Integer.parseInt(input) - 1;
+        } catch (NumberFormatException e) {
+            System.out.println("Opción inválida.");
+            return false;
+        }
+
+        if (nuevo >= 0 && nuevo < equipo.length && equipo[nuevo].vida > 0 && nuevo != turnoActual) {
+            System.out.println("¡Cambiando a " + equipo[nuevo].nombre + "!");
+            // Se hace el cambio devolviendo el nuevo índice
+            int temp = equipo[nuevo].vida; // si quieres almacenar algo temporal
+            equipo[nuevo] = equipo[turnoActual];
+            equipo[turnoActual] = equipo[nuevo];
+            return true; // acción realizada
+        } else {
+            System.out.println("Opción inválida.");
+            return false; // no se gasta turno
         }
     }
 
-    public static void accederMochila(Pokemon[] equipo, Curas[] mochila) {
+
+    public static boolean accederMochila(Pokemon[] equipo, Curas[] mochila) {
         Scanner sc = new Scanner(System.in);
         boolean usado = false;
 
         while (!usado) {
-            System.out.println("Elige un objeto:");
+            System.out.println("Elige un objeto (C para cancelar):");
             for (int i = 0; i < mochila.length; i++) {
                 System.out.println((i+1) + ") " + mochila[i].cantidad + "x " + mochila[i].nombre);
-                if (i == mochila.length - 1 ) {
-                }
             }
 
-            int opcion = sc.nextInt() - 1;
+            String input = sc.nextLine().trim();
+            if (input.equalsIgnoreCase("C")) {
+                System.out.println("Cancelado.");
+                return false; // cancelar no consume turno
+            }
+
+            int opcion;
+            try {
+                opcion = Integer.parseInt(input) - 1;
+            } catch (NumberFormatException e) {
+                System.out.println("Opción inválida.");
+                continue;
+            }
+
             if (opcion < 0 || opcion >= mochila.length) continue;
             if (mochila[opcion].cantidad <= 0) {
                 System.out.println("No tienes " + mochila[opcion].nombre);
                 continue;
             }
 
-            // Mostrar todos los Pokémon vivos del equipo
-            System.out.println("¿Qué Pokémon quieres curar?");
+            System.out.println("¿Qué Pokémon quieres curar? (C para cancelar)");
             for (int i = 0; i < equipo.length; i++) {
                 if (equipo[i].vida > 0) {
                     System.out.println((i+1) + ") " + equipo[i].nombre + " | " + barraVida(equipo[i].vida, equipo[i].vidamax));
                 }
             }
 
-            int opcionPokemon = sc.nextInt() - 1;
+            String inputPokemon = sc.nextLine().trim();
+            if (inputPokemon.equalsIgnoreCase("C")) {
+                System.out.println("Cancelado.");
+                return false; // cancelar no consume turno
+            }
+
+            int opcionPokemon;
+            try {
+                opcionPokemon = Integer.parseInt(inputPokemon) - 1;
+            } catch (NumberFormatException e) {
+                System.out.println("Opción inválida.");
+                continue;
+            }
+
             if (opcionPokemon < 0 || opcionPokemon >= equipo.length || equipo[opcionPokemon].vida <= 0) {
                 System.out.println("Opción inválida.");
                 continue;
             }
 
-            // Aplicar la poción
             consumirPocion(equipo[opcionPokemon], mochila[opcion]);
             usado = true;
         }
+
+        return true; // acción realizada, turno consumido
     }
+
 
 
     public static void consumirPocion(Pokemon p, Curas pocion) {
@@ -152,18 +194,25 @@ public class Combate {
         int turnoEnemigo = 0;
 
         while (true) {
-
             // Buscar primer Pokémon vivo
             while (turnoJugador < equipoJugador.length && equipoJugador[turnoJugador].vida <= 0) turnoJugador++;
             while (turnoEnemigo < equipoEnemigo.length && equipoEnemigo[turnoEnemigo].vida <= 0) turnoEnemigo++;
 
-            // Fin del combate
+            // Comprobar fin de combate
             if (turnoJugador >= equipoJugador.length) {
                 System.out.println("¡Has perdido el combate!");
                 break;
             }
             if (turnoEnemigo >= equipoEnemigo.length) {
                 System.out.println("¡Has ganado el combate!");
+                // Dar XP a todos los Pokémon vivos del equipo
+                for (Pokemon p : equipoJugador) {
+                    if (p.vida > 0) {
+                        int xpGanada = p.calcularXP(equipoEnemigo[turnoEnemigo - 1]);
+                        p.ganarXP(equipoEnemigo[turnoEnemigo - 1]);
+                        p.subirNivel(xpGanada);
+                    }
+                }
                 break;
             }
 
@@ -175,27 +224,46 @@ public class Combate {
             // --- TURNO DEL JUGADOR ---
             boolean accionValida = false;
             while (!accionValida) {
-
                 System.out.println("\n┌─────────────────────────┐");
                 System.out.println("│ 1) Atacar               │");
                 System.out.println("│ 2) Usar poción          │");
                 System.out.println("│ 3) Cambiar Pokémon      │");
                 System.out.println("└─────────────────────────┘");
-                System.out.print("Elige tu acción: ");
+                System.out.print("Elige tu acción (C para cancelar): ");
+                String opcionInput = sc.nextLine().trim();
 
-                int opcion = sc.nextInt();
+                if (opcionInput.equalsIgnoreCase("C")) {
+                    System.out.println("Cancelado. Elige otra acción.");
+                    continue; // No se gasta el turno
+                }
+
+                int opcion;
+                try {
+                    opcion = Integer.parseInt(opcionInput);
+                } catch (NumberFormatException e) {
+                    System.out.println("Opción inválida.");
+                    continue;
+                }
 
                 switch (opcion) {
-
                     case 1 -> { // ATACAR
-                        System.out.println("Elige movimiento:");
+                        System.out.println("Elige movimiento (C para cancelar):");
                         for (int i = 0; i < jugador.movimientos.length; i++) {
                             if (jugador.movimientos[i] != null)
                                 System.out.println((i + 1) + ") " + jugador.movimientos[i].nombre_atk);
                         }
-
-                        int mov = sc.nextInt() - 1;
-
+                        String movInput = sc.nextLine().trim();
+                        if (movInput.equalsIgnoreCase("C")) {
+                            System.out.println("Cancelado.");
+                            continue;
+                        }
+                        int mov;
+                        try {
+                            mov = Integer.parseInt(movInput) - 1;
+                        } catch (NumberFormatException e) {
+                            System.out.println("Movimiento inválido.");
+                            continue;
+                        }
                         if (mov >= 0 && mov < jugador.movimientos.length && jugador.movimientos[mov] != null) {
                             jugador.usarMovimiento(mov, enemigo);
                             accionValida = true;
@@ -205,31 +273,18 @@ public class Combate {
                     }
 
                     case 2 -> { // USAR POCIÓN
-                        accederMochila(equipoJugador, mochila);
-                        accionValida = true;
+                        if (accederMochila(equipoJugador, mochila)) {
+                            accionValida = true;
+                        } else {
+                            System.out.println("Cancelado.");
+                        }
                     }
 
                     case 3 -> { // CAMBIAR POKÉMON
-                        System.out.println("Elige Pokémon para cambiar:");
-
-                        for (int i = 0; i < equipoJugador.length; i++) {
-                            if (equipoJugador[i].vida > 0 && i != turnoJugador) {
-                                System.out.println((i + 1) + ") " + equipoJugador[i].nombre + " | " +
-                                        barraVida(equipoJugador[i].vida, equipoJugador[i].vidamax));
-                            }
-                        }
-
-                        int nuevo = sc.nextInt() - 1;
-
-                        if (nuevo >= 0 && nuevo < equipoJugador.length &&
-                                equipoJugador[nuevo].vida > 0 && nuevo != turnoJugador) {
-
-                            System.out.println("¡Cambiando a " + equipoJugador[nuevo].nombre + "!");
-                            turnoJugador = nuevo;
+                        if (cambiarPokemon(equipoJugador, turnoJugador)) {
                             accionValida = true;
-
                         } else {
-                            System.out.println("Opción inválida.");
+                            System.out.println("Cancelado.");
                         }
                     }
 
@@ -242,7 +297,6 @@ public class Combate {
             jugador = equipoJugador[turnoJugador];
 
             if (enemigo.vida > 0) {
-
                 try { Thread.sleep(700); } catch (InterruptedException ignored) {}
 
                 // Elegir movimiento aleatorio
@@ -252,17 +306,31 @@ public class Combate {
                 } while (enemigo.movimientos[mov] == null);
 
                 System.out.println(enemigo.nombre + " usó " + enemigo.movimientos[mov].nombre_atk + "!");
-
                 try { Thread.sleep(600); } catch (InterruptedException ignored) {}
-
                 enemigo.usarMovimiento(mov, jugador);
+
+                // Si el Pokémon del jugador cae, dar XP
+                if (jugador.vida <= 0) {
+                    int xpGanada = jugador.calcularXP(enemigo);
+                    jugador.ganarXP(enemigo);
+                    jugador.subirNivel(xpGanada);
+                }
+            }
+
+            // Si el enemigo cae, dar XP al jugador
+            if (enemigo.vida <= 0) {
+                int xpGanada = jugador.calcularXP(enemigo);
+                jugador.ganarXP(enemigo);
+                jugador.subirNivel(xpGanada);
+                System.out.println(enemigo.nombre + " se ha debilitado.");
+                turnoEnemigo++;
             }
 
             System.out.println("\n--- Fin del turno ---\n");
             try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-
         }
     }
+
 }
 
 

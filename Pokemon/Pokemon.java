@@ -22,8 +22,9 @@ public abstract class Pokemon {
     public int defensa;
     public String tipo;
     public int nivel;
+    public int xp_actual;
 
-    Pokemon(String nombre, int vida, int vidamax, int ataque, int defensa, String tipo,int nivel) {
+    Pokemon(String nombre, int vida, int vidamax, int ataque, int defensa, String tipo,int nivel,int xp_actual) {
         this.nombre = nombre;
         this.vida = vida;
         this.vidamax = vidamax;
@@ -31,6 +32,7 @@ public abstract class Pokemon {
         this.defensa = defensa;
         this.tipo = tipo;
         this.nivel = nivel;
+        this.xp_actual = xp_actual;
     }
 
 
@@ -123,16 +125,33 @@ public abstract class Pokemon {
             }
         }
     }
-    public void subirNivel() {
-        this.ataque += 2;
-        this.vida += 3;
-
-        if (vida > vidamax) vida = vidamax;
-
-        // Charmander aprende movimiento al nivel 10
-        if (nivel == 5) {
-            aprenderMovimiento(new Ataque("Lanzallamas", "fuego", 60));
+    public int xpNivel(int nivel) {
+        return nivel * nivel * nivel;
+    }
+    public void subirNivel(int xp_adquirida) {
+        this.xp_actual += xp_adquirida;
+        while(this.xp_actual >= xpNivel(this.nivel + 1)) {
+                int xp_necesaria =  xpNivel(this.nivel + 1);
+                this.nivel ++;
+                this.vidamax += 3;
+                this.ataque += 2;
+                this.defensa += 2;
+            System.out.println(this.nombre + " ha subido a nivel " + this.nivel + " !");
         }
+
+        int SiguienteNivel = xpNivel(this.nivel + 1) - this.xp_actual;
+        System.out.println(this.nombre + " necesita " + SiguienteNivel + " XP para el siguiente nivel.");
+    }
+    public int calcularXP(Pokemon enemigo) {
+        return enemigo.nivel * 20;
+    }
+    public void ganarXP(Pokemon enemigo) {
+        int xpGanada = calcularXP(enemigo);
+
+        subirNivel(xpGanada);
+
+        System.out.println(nombre + " ganó " + xpGanada + " puntos de experiencia!");
+
     }
 
 }
